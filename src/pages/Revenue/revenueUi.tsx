@@ -1,0 +1,137 @@
+import Chart from "react-apexcharts";
+import type { ApexOptions } from "apexcharts";
+import Badge from "../../components/ui/badge/Badge";
+import type { OrderStatus, RevenueOrder } from "../../lib/adminQueries";
+
+export function formatMoney(amount: number, currency: string) {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency,
+  }).format(amount);
+}
+
+export function formatDate(value: string) {
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  }).format(new Date(value));
+}
+
+export function statusColor(status: OrderStatus) {
+  if (status === "paid") return "success";
+  if (status === "pending") return "warning";
+  return "error";
+}
+
+export function MetricCard({
+  label,
+  value,
+  context,
+}: {
+  label: string;
+  value: string;
+  context: string;
+}) {
+  return (
+    <div className="rounded-lg border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
+      <span className="text-sm text-gray-500 dark:text-gray-400">{label}</span>
+      <h3 className="mt-2 text-2xl font-semibold text-gray-800 dark:text-white/90">
+        {value}
+      </h3>
+      <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{context}</p>
+    </div>
+  );
+}
+
+export function RevenueChart({
+  title,
+  labels,
+  values,
+}: {
+  title: string;
+  labels: string[];
+  values: number[];
+}) {
+  const options: ApexOptions = {
+    chart: { fontFamily: "Outfit, sans-serif", toolbar: { show: false } },
+    colors: ["#465FFF"],
+    dataLabels: { enabled: false },
+    grid: { yaxis: { lines: { show: true } } },
+    plotOptions: {
+      bar: {
+        borderRadius: 5,
+        borderRadiusApplication: "end",
+        columnWidth: "42%",
+      },
+    },
+    xaxis: { categories: labels, axisBorder: { show: false } },
+    yaxis: { labels: { formatter: (value) => `${Math.round(value)}` } },
+    tooltip: { y: { formatter: (value) => `${value.toFixed(2)}` } },
+  };
+
+  return (
+    <div className="rounded-lg border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
+      <h3 className="mb-4 text-lg font-semibold text-gray-800 dark:text-white/90">
+        {title}
+      </h3>
+      {values.length === 0 ? (
+        <p className="py-12 text-center text-sm text-gray-500">
+          No revenue in this date range.
+        </p>
+      ) : (
+        <div className="max-w-full overflow-x-auto">
+          <div className="min-w-[520px]">
+            <Chart
+              options={options}
+              series={[{ name: "Revenue", data: values }]}
+              type="bar"
+              height={240}
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function RecentRevenueOrders({
+  orders,
+}: {
+  orders: RevenueOrder[];
+}) {
+  return (
+    <div className="rounded-lg border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
+      <h3 className="mb-4 text-lg font-semibold text-gray-800 dark:text-white/90">
+        Recent orders
+      </h3>
+      {orders.length === 0 ? (
+        <p className="text-sm text-gray-500">No orders in this date range.</p>
+      ) : (
+        <div className="space-y-3">
+          {orders.map((order) => (
+            <div
+              key={order.id}
+              className="flex flex-col justify-between gap-2 rounded-lg border border-gray-100 p-3 dark:border-gray-800 sm:flex-row sm:items-center"
+            >
+              <div>
+                <p className="font-medium text-gray-800 dark:text-white/90">
+                  {order.planTitle}
+                </p>
+                <p className="text-xs text-gray-500">
+                  {order.traveler_email} · {formatDate(order.created_at)}
+                </p>
+              </div>
+              <div className="flex items-center gap-3">
+                <Badge color={statusColor(order.status)}>{order.status}</Badge>
+                <span className="text-sm font-medium text-gray-800 dark:text-white/90">
+                  {formatMoney(order.total_amount, order.currency)}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
