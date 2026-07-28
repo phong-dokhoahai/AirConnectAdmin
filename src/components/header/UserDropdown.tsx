@@ -3,10 +3,12 @@ import { useNavigate } from "react-router";
 import { DropdownItem } from "../ui/dropdown/DropdownItem";
 import { Dropdown } from "../ui/dropdown/Dropdown";
 import { useAuth } from "../../lib/auth";
+import { useI18n } from "../../lib/i18n";
 
 export default function UserDropdown() {
   const [isOpen, setIsOpen] = useState(false);
   const { user, signOut } = useAuth();
+  const { t } = useI18n();
   const navigate = useNavigate();
   const email = user?.email ?? "admin@airconnect.com";
 
@@ -67,7 +69,7 @@ export default function UserDropdown() {
           onClick={handleSignOut}
           className="mt-3 flex items-center gap-3 rounded-lg px-3 py-2 font-medium text-gray-700 text-theme-sm hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
         >
-          Sign out
+          {t("header.signOut")}
         </DropdownItem>
       </Dropdown>
     </div>

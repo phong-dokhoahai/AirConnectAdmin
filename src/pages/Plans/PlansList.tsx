@@ -10,18 +10,31 @@ import {
   setPlanActive,
   type PlanSummary,
 } from "../../lib/adminQueries";
+import {
+  localeForLanguage,
+  useI18n,
+  type LanguageCode,
+} from "../../lib/i18n";
 
 type StatusFilter = "all" | "active" | "hidden";
 
-function formatMoney(amount: number, currency: string) {
-  return `${currency} ${amount.toFixed(2)}`;
+function formatMoney(
+  amount: number,
+  currency: string,
+  language: LanguageCode
+) {
+  return new Intl.NumberFormat(localeForLanguage(language), {
+    style: "currency",
+    currency,
+  }).format(amount);
 }
 
-function formatData(plan: PlanSummary) {
-  return plan.is_unlimited ? "Unlimited" : `${plan.data_amount_gb ?? 0}GB`;
+function formatData(plan: PlanSummary, unlimitedLabel: string) {
+  return plan.is_unlimited ? unlimitedLabel : `${plan.data_amount_gb ?? 0}GB`;
 }
 
 export default function PlansList() {
+  const { language, t } = useI18n();
   const [plans, setPlans] = useState<PlanSummary[]>([]);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
@@ -36,9 +49,7 @@ export default function PlansList() {
     try {
       setPlans(await listPlans());
     } catch (nextError) {
-      setError(
-        nextError instanceof Error ? nextError.message : "Could not load plans."
-      );
+      setError(nextError instanceof Error ? nextError.message : t("error.plans"));
     } finally {
       setLoading(false);
     }
@@ -63,9 +74,7 @@ export default function PlansList() {
   }, [plans, search, statusFilter]);
 
   const confirmHide = async () => {
-    if (!planToHide) {
-      return;
-    }
+    if (!planToHide) return;
 
     setIsSaving(true);
     setError("");
@@ -76,7 +85,7 @@ export default function PlansList() {
       await loadPlans();
     } catch (nextError) {
       setError(
-        nextError instanceof Error ? nextError.message : "Could not hide plan."
+        nextError instanceof Error ? nextError.message : t("error.hidePlan")
       );
     } finally {
       setIsSaving(false);
@@ -94,17 +103,20 @@ export default function PlansList() {
       setError(
         nextError instanceof Error
           ? nextError.message
-          : "Could not activate plan."
+          : t("error.activatePlan")
       );
     } finally {
       setIsSaving(false);
     }
   };
 
+  const statusLabel = (plan: PlanSummary) =>
+    plan.is_active ? t("common.active") : t("common.hidden");
+
   return (
     <>
       <PageMeta title="eSIM Plans | AirConnect Admin" description="" />
-      <PageBreadcrumb pageTitle="eSIM Plans" />
+      <PageBreadcrumb pageTitle={t("plans.title")} />
 
       <div className="rounded-lg border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
         <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -112,7 +124,7 @@ export default function PlansList() {
             <input
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="Search plans"
+              placeholder={t("plans.search")}
               className="h-11 rounded-lg border border-gray-300 bg-transparent px-4 text-sm text-gray-800 shadow-theme-xs focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/20 dark:border-gray-700 dark:text-white/90"
             />
             <select
@@ -122,13 +134,13 @@ export default function PlansList() {
               }
               className="h-11 rounded-lg border border-gray-300 bg-transparent px-4 text-sm text-gray-800 shadow-theme-xs focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
             >
-              <option value="all">All statuses</option>
-              <option value="active">Active</option>
-              <option value="hidden">Hidden</option>
+              <option value="all">{t("common.allStatuses")}</option>
+              <option value="active">{t("common.active")}</option>
+              <option value="hidden">{t("common.hidden")}</option>
             </select>
           </div>
           <Link to="/plans/new">
-            <Button size="sm">Create plan</Button>
+            <Button size="sm">{t("plans.create")}</Button>
           </Link>
         </div>
 
@@ -142,27 +154,24 @@ export default function PlansList() {
           <table className="hidden min-w-full divide-y divide-gray-200 dark:divide-gray-800 md:table">
             <thead className="bg-gray-50 dark:bg-gray-900">
               <tr>
-                <th className="px-5 py-3 text-left text-xs font-medium text-gray-500">
-                  Plan
-                </th>
-                <th className="px-5 py-3 text-left text-xs font-medium text-gray-500">
-                  Coverage
-                </th>
-                <th className="px-5 py-3 text-left text-xs font-medium text-gray-500">
-                  Data
-                </th>
-                <th className="px-5 py-3 text-left text-xs font-medium text-gray-500">
-                  Validity
-                </th>
-                <th className="px-5 py-3 text-left text-xs font-medium text-gray-500">
-                  Price
-                </th>
-                <th className="px-5 py-3 text-left text-xs font-medium text-gray-500">
-                  Status
-                </th>
-                <th className="px-5 py-3 text-right text-xs font-medium text-gray-500">
-                  Actions
-                </th>
+                {[
+                  "common.plan",
+                  "common.coverage",
+                  "common.data",
+                  "common.validity",
+                  "plans.price",
+                  "common.status",
+                  "plans.actions",
+                ].map((key, index) => (
+                  <th
+                    key={key}
+                    className={`px-5 py-3 text-xs font-medium text-gray-500 ${
+                      index === 6 ? "text-right" : "text-left"
+                    }`}
+                  >
+                    {t(key)}
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
@@ -184,45 +193,26 @@ export default function PlansList() {
                       {plan.coverageSummary}
                     </td>
                     <td className="px-5 py-4 text-sm text-gray-500">
-                      {formatData(plan)}
+                      {formatData(plan, t("common.unlimited"))}
                     </td>
                     <td className="px-5 py-4 text-sm text-gray-500">
-                      {plan.validity_days} days
+                      {plan.validity_days} {t("common.days")}
                     </td>
                     <td className="px-5 py-4 text-sm text-gray-500">
-                      {formatMoney(plan.price, plan.currency)}
+                      {formatMoney(plan.price, plan.currency, language)}
                     </td>
                     <td className="px-5 py-4">
                       <Badge color={plan.is_active ? "success" : "warning"}>
-                        {plan.is_active ? "Active" : "Hidden"}
+                        {statusLabel(plan)}
                       </Badge>
                     </td>
                     <td className="px-5 py-4 text-right text-sm">
-                      <div className="flex justify-end gap-3">
-                        <Link
-                          to={`/plans/${plan.id}`}
-                          className="text-brand-500 hover:text-brand-600"
-                        >
-                          Edit
-                        </Link>
-                        {plan.is_active ? (
-                          <button
-                            onClick={() => setPlanToHide(plan)}
-                            disabled={isSaving}
-                            className="text-warning-600 hover:text-warning-700"
-                          >
-                            Hide
-                          </button>
-                        ) : (
-                          <button
-                            onClick={() => activatePlan(plan)}
-                            disabled={isSaving}
-                            className="text-success-600 hover:text-success-700"
-                          >
-                            Activate
-                          </button>
-                        )}
-                      </div>
+                      <PlanActions
+                        plan={plan}
+                        isSaving={isSaving}
+                        onActivate={activatePlan}
+                        onHide={setPlanToHide}
+                      />
                     </td>
                   </tr>
                 ))}
@@ -249,38 +239,20 @@ export default function PlansList() {
                       </p>
                     </div>
                     <Badge color={plan.is_active ? "success" : "warning"}>
-                      {plan.is_active ? "Active" : "Hidden"}
+                      {statusLabel(plan)}
                     </Badge>
                   </div>
                   <p className="text-sm text-gray-500">
-                    {formatData(plan)} · {plan.validity_days} days ·{" "}
-                    {formatMoney(plan.price, plan.currency)}
+                    {formatData(plan, t("common.unlimited"))} ·{" "}
+                    {plan.validity_days} {t("common.days")} ·{" "}
+                    {formatMoney(plan.price, plan.currency, language)}
                   </p>
-                  <div className="flex gap-4 text-sm">
-                    <Link
-                      to={`/plans/${plan.id}`}
-                      className="text-brand-500 hover:text-brand-600"
-                    >
-                      Edit
-                    </Link>
-                    {plan.is_active ? (
-                      <button
-                        onClick={() => setPlanToHide(plan)}
-                        disabled={isSaving}
-                        className="text-warning-600 hover:text-warning-700"
-                      >
-                        Hide
-                      </button>
-                    ) : (
-                      <button
-                        onClick={() => activatePlan(plan)}
-                        disabled={isSaving}
-                        className="text-success-600 hover:text-success-700"
-                      >
-                        Activate
-                      </button>
-                    )}
-                  </div>
+                  <PlanActions
+                    plan={plan}
+                    isSaving={isSaving}
+                    onActivate={activatePlan}
+                    onHide={setPlanToHide}
+                  />
                 </div>
               ))}
           </div>
@@ -288,13 +260,11 @@ export default function PlansList() {
           {!loading && filteredPlans.length === 0 && (
             <div className="p-8 text-center">
               <h3 className="font-medium text-gray-800 dark:text-white/90">
-                {plans.length === 0
-                  ? "No plans yet."
-                  : "No plans match these filters."}
+                {plans.length === 0 ? t("plans.noPlans") : t("plans.noMatch")}
               </h3>
               {plans.length === 0 ? (
                 <Link to="/plans/new" className="mt-3 inline-block">
-                  <Button size="sm">Create plan</Button>
+                  <Button size="sm">{t("plans.create")}</Button>
                 </Link>
               ) : (
                 <button
@@ -304,7 +274,7 @@ export default function PlansList() {
                   }}
                   className="mt-3 text-sm text-brand-500 hover:text-brand-600"
                 >
-                  Clear filters
+                  {t("common.clearFilters")}
                 </button>
               )}
             </div>
@@ -319,11 +289,10 @@ export default function PlansList() {
         showCloseButton={false}
       >
         <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-          Hide this plan from customers?
+          {t("plans.hideConfirmTitle")}
         </h2>
         <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-          {planToHide?.title} will no longer appear in the customer catalog.
-          Existing orders and eSIM history will remain intact.
+          {t("plans.hideConfirmBody", { title: planToHide?.title ?? "" })}
         </p>
         <div className="mt-6 flex justify-end gap-3">
           <Button
@@ -332,13 +301,52 @@ export default function PlansList() {
             onClick={() => setPlanToHide(null)}
             disabled={isSaving}
           >
-            Cancel
+            {t("common.cancel")}
           </Button>
           <Button size="sm" onClick={confirmHide} disabled={isSaving}>
-            {isSaving ? "Hiding..." : "Hide plan"}
+            {isSaving ? t("plans.hideSaving") : t("plans.hideSubmit")}
           </Button>
         </div>
       </Modal>
     </>
+  );
+}
+
+function PlanActions({
+  plan,
+  isSaving,
+  onActivate,
+  onHide,
+}: {
+  plan: PlanSummary;
+  isSaving: boolean;
+  onActivate: (plan: PlanSummary) => void;
+  onHide: (plan: PlanSummary) => void;
+}) {
+  const { t } = useI18n();
+
+  return (
+    <div className="flex gap-4 text-sm md:justify-end">
+      <Link to={`/plans/${plan.id}`} className="text-brand-500 hover:text-brand-600">
+        {t("common.edit")}
+      </Link>
+      {plan.is_active ? (
+        <button
+          onClick={() => onHide(plan)}
+          disabled={isSaving}
+          className="text-warning-600 hover:text-warning-700"
+        >
+          {t("common.hide")}
+        </button>
+      ) : (
+        <button
+          onClick={() => onActivate(plan)}
+          disabled={isSaving}
+          className="text-success-600 hover:text-success-700"
+        >
+          {t("common.activate")}
+        </button>
+      )}
+    </div>
   );
 }

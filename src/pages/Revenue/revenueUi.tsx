@@ -2,16 +2,21 @@ import Chart from "react-apexcharts";
 import type { ApexOptions } from "apexcharts";
 import Badge from "../../components/ui/badge/Badge";
 import type { OrderStatus, RevenueOrder } from "../../lib/adminQueries";
+import { localeForLanguage, useI18n, type LanguageCode } from "../../lib/i18n";
 
-export function formatMoney(amount: number, currency: string) {
-  return new Intl.NumberFormat("en-US", {
+export function formatMoney(
+  amount: number,
+  currency: string,
+  language: LanguageCode = "en"
+) {
+  return new Intl.NumberFormat(localeForLanguage(language), {
     style: "currency",
     currency,
   }).format(amount);
 }
 
-export function formatDate(value: string) {
-  return new Intl.DateTimeFormat("en-US", {
+export function formatDate(value: string, language: LanguageCode = "en") {
+  return new Intl.DateTimeFormat(localeForLanguage(language), {
     month: "short",
     day: "numeric",
     year: "numeric",
@@ -53,6 +58,7 @@ export function RevenueChart({
   labels: string[];
   values: number[];
 }) {
+  const { t } = useI18n();
   const options: ApexOptions = {
     chart: { fontFamily: "Outfit, sans-serif", toolbar: { show: false } },
     colors: ["#465FFF"],
@@ -77,14 +83,14 @@ export function RevenueChart({
       </h3>
       {values.length === 0 ? (
         <p className="py-12 text-center text-sm text-gray-500">
-          No revenue in this date range.
+          {t("revenue.noRange")}
         </p>
       ) : (
         <div className="max-w-full overflow-x-auto">
           <div className="min-w-[520px]">
             <Chart
               options={options}
-              series={[{ name: "Revenue", data: values }]}
+              series={[{ name: t("revenue.chartSeries"), data: values }]}
               type="bar"
               height={240}
             />
@@ -95,18 +101,16 @@ export function RevenueChart({
   );
 }
 
-export function RecentRevenueOrders({
-  orders,
-}: {
-  orders: RevenueOrder[];
-}) {
+export function RecentRevenueOrders({ orders }: { orders: RevenueOrder[] }) {
+  const { language, t } = useI18n();
+
   return (
     <div className="rounded-lg border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
       <h3 className="mb-4 text-lg font-semibold text-gray-800 dark:text-white/90">
-        Recent orders
+        {t("dashboard.recentOrders")}
       </h3>
       {orders.length === 0 ? (
-        <p className="text-sm text-gray-500">No orders in this date range.</p>
+        <p className="text-sm text-gray-500">{t("revenue.noOrdersRange")}</p>
       ) : (
         <div className="space-y-3">
           {orders.map((order) => (
@@ -119,13 +123,15 @@ export function RecentRevenueOrders({
                   {order.planTitle}
                 </p>
                 <p className="text-xs text-gray-500">
-                  {order.traveler_email} · {formatDate(order.created_at)}
+                  {order.traveler_email} · {formatDate(order.created_at, language)}
                 </p>
               </div>
               <div className="flex items-center gap-3">
-                <Badge color={statusColor(order.status)}>{order.status}</Badge>
+                <Badge color={statusColor(order.status)}>
+                  {t(`status.${order.status}`)}
+                </Badge>
                 <span className="text-sm font-medium text-gray-800 dark:text-white/90">
-                  {formatMoney(order.total_amount, order.currency)}
+                  {formatMoney(order.total_amount, order.currency, language)}
                 </span>
               </div>
             </div>

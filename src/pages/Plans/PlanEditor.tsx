@@ -14,6 +14,7 @@ import {
   type PlanNetworkInput,
   type Region,
 } from "../../lib/adminQueries";
+import { useI18n } from "../../lib/i18n";
 
 type FieldErrors = Partial<Record<keyof PlanForm, string>>;
 
@@ -93,7 +94,11 @@ function parseFeatures(text: string): PlanFeatureInput[] {
     }));
 }
 
-function parseNetworks(text: string, countries: Country[]): PlanNetworkInput[] {
+function parseNetworks(
+  text: string,
+  countries: Country[],
+  errorMessage: string
+): PlanNetworkInput[] {
   const countryByIso2 = new Map(
     countries.map((country) => [country.iso2.toUpperCase(), country])
   );
@@ -109,9 +114,7 @@ function parseNetworks(text: string, countries: Country[]): PlanNetworkInput[] {
       const country = countryByIso2.get(iso2.toUpperCase());
 
       if (!country || !["4G", "5G", "LTE"].includes(type)) {
-        throw new Error(
-          "Networks must use: ISO2 | Network name | 4G/5G/LTE | Optional note"
-        );
+        throw new Error(errorMessage);
       }
 
       return {
@@ -123,28 +126,28 @@ function parseNetworks(text: string, countries: Country[]): PlanNetworkInput[] {
     });
 }
 
-function validateForm(form: PlanForm) {
+function validateForm(form: PlanForm, t: (key: string) => string) {
   const errors: FieldErrors = {};
 
-  if (!form.title.trim()) errors.title = "Title is required.";
+  if (!form.title.trim()) errors.title = t("plans.titleRequired");
   if (!form.validityDays || Number(form.validityDays) <= 0) {
-    errors.validityDays = "Validity must be greater than 0.";
+    errors.validityDays = t("plans.validityRequired");
   }
   if (!form.price || Number(form.price) < 0) {
-    errors.price = "Price must be 0 or greater.";
+    errors.price = t("plans.priceRequired");
   }
   if (!form.currency.trim() || form.currency !== form.currency.toUpperCase()) {
-    errors.currency = "Currency must be uppercase.";
+    errors.currency = t("plans.currencyRequired");
   }
-  if (!form.providerName.trim()) errors.providerName = "Provider is required.";
+  if (!form.providerName.trim()) errors.providerName = t("plans.providerRequired");
   if (!form.activationPolicy.trim()) {
-    errors.activationPolicy = "Activation policy is required.";
+    errors.activationPolicy = t("plans.activationPolicyRequired");
   }
   if (!form.isUnlimited && Number(form.dataAmountGb) <= 0) {
-    errors.dataAmountGb = "Data amount must be greater than 0.";
+    errors.dataAmountGb = t("plans.dataRequired");
   }
   if (form.isUnlimited && form.dataAmountGb.trim()) {
-    errors.dataAmountGb = "Unlimited plans should not include a data amount.";
+    errors.dataAmountGb = t("plans.unlimitedNoAmount");
   }
 
   return errors;
@@ -158,6 +161,7 @@ function FieldError({ message }: { message?: string }) {
 export default function PlanEditor() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { t } = useI18n();
   const titleRef = useRef<HTMLInputElement>(null);
   const [form, setForm] = useState<PlanForm>(emptyForm);
   const [countries, setCountries] = useState<Country[]>([]);
@@ -210,7 +214,7 @@ export default function PlanEditor() {
         }
       } catch (nextError) {
         setPageError(
-          nextError instanceof Error ? nextError.message : "Could not load plan."
+            nextError instanceof Error ? nextError.message : t("error.plan")
         );
       } finally {
         if (mounted) setLoading(false);
@@ -244,7 +248,7 @@ export default function PlanEditor() {
     setSavedMessage("");
     setPageError("");
 
-    const nextErrors = validateForm(form);
+    const nextErrors = validateForm(form, t);
     setErrors(nextErrors);
 
     if (Object.keys(nextErrors).length > 0) {
@@ -270,17 +274,21 @@ export default function PlanEditor() {
         is_active: form.isActive,
         countryIds: form.countryIds,
         regionIds: form.regionIds,
-        networks: parseNetworks(form.networksText, countries),
+        networks: parseNetworks(
+          form.networksText,
+          countries,
+          t("plans.networksInvalid")
+        ),
         features: parseFeatures(form.featuresText),
       });
-      setSavedMessage("Plan saved.");
+      setSavedMessage(t("plans.saved"));
 
       if (!isEditing) {
         navigate("/plans", { replace: true });
       }
     } catch (nextError) {
       setPageError(
-        nextError instanceof Error ? nextError.message : "Could not save plan."
+        nextError instanceof Error ? nextError.message : t("error.savePlan")
       );
     } finally {
       setSaving(false);
@@ -290,10 +298,12 @@ export default function PlanEditor() {
   return (
     <>
       <PageMeta
-        title={`${isEditing ? "Edit" : "Create"} eSIM Plan | AirConnect Admin`}
+        title={`${isEditing ? t("plans.editTitle") : t("plans.createTitle")} | AirConnect Admin`}
         description=""
       />
-      <PageBreadcrumb pageTitle={isEditing ? "Edit eSIM Plan" : "Create Plan"} />
+      <PageBreadcrumb
+        pageTitle={isEditing ? t("plans.editTitle") : t("plans.createTitle")}
+      />
 
       <form
         onSubmit={handleSubmit}
@@ -316,12 +326,12 @@ export default function PlanEditor() {
           <>
             <section>
               <h2 className="mb-4 text-lg font-semibold text-gray-800 dark:text-white/90">
-                Basics
+                {t("plans.basics")}
               </h2>
               <div className="grid gap-4 lg:grid-cols-2">
                 <label className="block">
                   <span className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Title
+                    {t("common.plan")}
                   </span>
                   <input
                     ref={titleRef}
@@ -333,7 +343,7 @@ export default function PlanEditor() {
                 </label>
                 <label className="block">
                   <span className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Provider
+                    {t("plans.provider")}
                   </span>
                   <input
                     value={form.providerName}
@@ -346,7 +356,7 @@ export default function PlanEditor() {
                 </label>
                 <label className="block lg:col-span-2">
                   <span className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Description
+                    {t("plans.description")}
                   </span>
                   <textarea
                     value={form.description}
@@ -362,12 +372,12 @@ export default function PlanEditor() {
 
             <section>
               <h2 className="mb-4 text-lg font-semibold text-gray-800 dark:text-white/90">
-                Coverage
+                {t("plans.coverage")}
               </h2>
               <div className="grid gap-6 lg:grid-cols-2">
                 <div>
                   <h3 className="mb-3 text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Countries
+                    {t("plans.countries")}
                   </h3>
                   <div className="grid max-h-56 gap-2 overflow-y-auto rounded-lg border border-gray-200 p-3 dark:border-gray-800 sm:grid-cols-2">
                     {countries.map((country) => (
@@ -392,7 +402,7 @@ export default function PlanEditor() {
                 </div>
                 <div>
                   <h3 className="mb-3 text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Regions
+                    {t("plans.regions")}
                   </h3>
                   <div className="grid gap-2 rounded-lg border border-gray-200 p-3 dark:border-gray-800">
                     {regions.map((region) => (
@@ -420,12 +430,12 @@ export default function PlanEditor() {
 
             <section>
               <h2 className="mb-4 text-lg font-semibold text-gray-800 dark:text-white/90">
-                Pricing
+                {t("plans.pricing")}
               </h2>
               <div className="grid gap-4 lg:grid-cols-3">
                 <label className="block">
                   <span className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Price
+                    {t("plans.price")}
                   </span>
                   <input
                     type="number"
@@ -439,7 +449,7 @@ export default function PlanEditor() {
                 </label>
                 <label className="block">
                   <span className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Currency
+                    {t("plans.currency")}
                   </span>
                   <input
                     value={form.currency}
@@ -452,7 +462,7 @@ export default function PlanEditor() {
                 </label>
                 <label className="block">
                   <span className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Validity days
+                    {t("plans.validityDays")}
                   </span>
                   <input
                     type="number"
@@ -470,12 +480,12 @@ export default function PlanEditor() {
 
             <section>
               <h2 className="mb-4 text-lg font-semibold text-gray-800 dark:text-white/90">
-                Availability
+                {t("plans.availability")}
               </h2>
               <div className="grid gap-4 lg:grid-cols-2">
                 <label className="block">
                   <span className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Data amount GB
+                    {t("plans.dataAmount")}
                   </span>
                   <input
                     type="number"
@@ -492,11 +502,11 @@ export default function PlanEditor() {
                 </label>
                 <div className="grid gap-3 pt-7">
                   {[
-                    ["isUnlimited", "Unlimited data"],
-                    ["tetheringSupported", "Tethering supported"],
-                    ["supports5g", "5G supported"],
-                    ["isActive", "Active in customer catalog"],
-                  ].map(([key, label]) => (
+                    ["isUnlimited", "plans.unlimitedData"],
+                    ["tetheringSupported", "plans.tethering"],
+                    ["supports5g", "plans.support5g"],
+                    ["isActive", "plans.activeCatalog"],
+                  ].map(([key, labelKey]) => (
                     <label
                       key={key}
                       className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300"
@@ -511,13 +521,13 @@ export default function PlanEditor() {
                           )
                         }
                       />
-                      {label}
+                      {t(labelKey)}
                     </label>
                   ))}
                 </div>
                 <label className="block lg:col-span-2">
                   <span className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Activation policy
+                    {t("plans.activationPolicy")}
                   </span>
                   <textarea
                     value={form.activationPolicy}
@@ -531,7 +541,7 @@ export default function PlanEditor() {
                 </label>
                 <label className="block lg:col-span-2">
                   <span className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Networks
+                    {t("plans.networks")}
                   </span>
                   <textarea
                     value={form.networksText}
@@ -543,12 +553,12 @@ export default function PlanEditor() {
                     className="w-full rounded-lg border border-gray-300 bg-transparent px-4 py-3 text-sm text-gray-800 dark:border-gray-700 dark:text-white/90"
                   />
                   <p className="mt-1 text-xs text-gray-500">
-                    One per line: ISO2 | Network name | 4G/5G/LTE | Optional note
+                    {t("plans.networksHint")}
                   </p>
                 </label>
                 <label className="block lg:col-span-2">
                   <span className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Features
+                    {t("plans.features")}
                   </span>
                   <textarea
                     value={form.featuresText}
@@ -559,7 +569,9 @@ export default function PlanEditor() {
                     placeholder={"Instant QR activation\nTethering supported"}
                     className="w-full rounded-lg border border-gray-300 bg-transparent px-4 py-3 text-sm text-gray-800 dark:border-gray-700 dark:text-white/90"
                   />
-                  <p className="mt-1 text-xs text-gray-500">One label per line.</p>
+                  <p className="mt-1 text-xs text-gray-500">
+                    {t("plans.featuresHint")}
+                  </p>
                 </label>
               </div>
             </section>
@@ -567,11 +579,11 @@ export default function PlanEditor() {
             <div className="sticky bottom-0 -mx-5 flex justify-end gap-3 border-t border-gray-200 bg-white px-5 py-4 dark:border-gray-800 dark:bg-gray-900">
               <Link to="/plans">
                 <Button variant="outline" size="sm" disabled={saving}>
-                  Cancel
+                  {t("common.cancel")}
                 </Button>
               </Link>
               <Button type="submit" size="sm" disabled={saving}>
-                {saving ? "Saving..." : "Save plan"}
+                {saving ? t("plans.saving") : t("plans.save")}
               </Button>
             </div>
           </>

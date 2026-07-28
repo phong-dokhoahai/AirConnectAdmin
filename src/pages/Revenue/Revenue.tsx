@@ -8,6 +8,7 @@ import {
   type RevenueSummary,
 } from "../../lib/adminQueries";
 import { formatMoney, MetricCard, RevenueChart } from "./revenueUi";
+import { useI18n } from "../../lib/i18n";
 
 const statuses: OrderStatus[] = ["paid", "pending", "failed", "canceled"];
 
@@ -24,6 +25,7 @@ function toggleStatus(values: OrderStatus[], status: OrderStatus) {
 }
 
 export default function Revenue() {
+  const { language, t } = useI18n();
   const [startDate, setStartDate] = useState(todayInput(-30));
   const [endDate, setEndDate] = useState(todayInput(0));
   const [selectedStatuses, setSelectedStatuses] = useState<OrderStatus[]>([
@@ -47,7 +49,7 @@ export default function Revenue() {
       );
     } catch (nextError) {
       setError(
-        nextError instanceof Error ? nextError.message : "Could not load revenue."
+        nextError instanceof Error ? nextError.message : t("error.revenue")
       );
     } finally {
       setLoading(false);
@@ -62,13 +64,13 @@ export default function Revenue() {
   return (
     <>
       <PageMeta title="Revenue | AirConnect Admin" description="" />
-      <PageBreadcrumb pageTitle="Revenue" />
+      <PageBreadcrumb pageTitle={t("common.revenue")} />
 
       <div className="mb-6 rounded-lg border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
         <div className="grid gap-4 lg:grid-cols-[1fr_1fr_2fr_auto] lg:items-end">
           <label>
             <span className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Start date
+              {t("common.startDate")}
             </span>
             <input
               type="date"
@@ -79,7 +81,7 @@ export default function Revenue() {
           </label>
           <label>
             <span className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-              End date
+              {t("common.endDate")}
             </span>
             <input
               type="date"
@@ -90,7 +92,7 @@ export default function Revenue() {
           </label>
           <div>
             <span className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Payment status
+              {t("common.paymentStatus")}
             </span>
             <div className="flex flex-wrap gap-3">
               {statuses.map((status) => (
@@ -105,18 +107,17 @@ export default function Revenue() {
                       setSelectedStatuses(toggleStatus(selectedStatuses, status))
                     }
                   />
-                  {status}
+                  {t(`status.${status}`)}
                 </label>
               ))}
             </div>
           </div>
           <Button size="sm" onClick={loadRevenue} disabled={loading}>
-            Apply
+            {t("common.apply")}
           </Button>
         </div>
         <p className="mt-3 text-xs text-gray-500 dark:text-gray-400">
-          Revenue defaults to paid orders. Other statuses are included only when
-          checked.
+          {t("revenue.defaultHint")}
         </p>
       </div>
 
@@ -139,47 +140,55 @@ export default function Revenue() {
         <div className="grid grid-cols-12 gap-4 md:gap-6">
           <div className="col-span-12 md:col-span-4">
             <MetricCard
-              label="Filtered revenue"
-              value={formatMoney(summary.totalRevenue, summary.currency)}
-              context={`${startDate} to ${endDate}`}
+              label={t("revenue.filtered")}
+              value={formatMoney(summary.totalRevenue, summary.currency, language)}
+              context={t("revenue.dateRange", {
+                start: startDate,
+                end: endDate,
+              })}
             />
           </div>
           <div className="col-span-12 md:col-span-4">
             <MetricCard
-              label="Paid orders"
+              label={t("common.orders")}
               value={summary.paidOrders.toString()}
-              context="Revenue-counting by default"
+              context={t("revenue.paidDefault")}
             />
           </div>
           <div className="col-span-12 md:col-span-4">
             <MetricCard
-              label="Included statuses"
+              label={t("revenue.includedStatuses")}
               value={selectedStatuses.length.toString()}
-              context={selectedStatuses.join(", ") || "None selected"}
+              context={
+                selectedStatuses.map((status) => t(`status.${status}`)).join(", ") ||
+                t("common.noneSelected")
+              }
             />
           </div>
           <div className="col-span-12 xl:col-span-7">
             <RevenueChart
-              title="Revenue by day"
+              title={t("revenue.byDay")}
               labels={summary.revenueByDay.map((row) => row.label)}
               values={summary.revenueByDay.map((row) => row.revenue)}
             />
           </div>
           <div className="col-span-12 xl:col-span-5">
             <RevenueChart
-              title="Revenue by status"
-              labels={summary.revenueByStatus.map((row) => row.label)}
+              title={t("revenue.byStatus")}
+              labels={summary.revenueByStatus.map((row) =>
+                t(`status.${row.label}`)
+              )}
               values={summary.revenueByStatus.map((row) => row.revenue)}
             />
           </div>
           <div className="col-span-12 xl:col-span-6">
             <div className="rounded-lg border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
               <h3 className="mb-4 text-lg font-semibold text-gray-800 dark:text-white/90">
-                Revenue by plan
+                {t("revenue.byPlan")}
               </h3>
               {summary.topPlans.length === 0 ? (
                 <p className="text-sm text-gray-500">
-                  No revenue in this date range.
+                  {t("revenue.noRange")}
                 </p>
               ) : (
                 <div className="space-y-3">
@@ -193,11 +202,11 @@ export default function Revenue() {
                           {plan.label}
                         </p>
                         <p className="text-xs text-gray-500">
-                          {plan.orders} orders
+                          {t("orders.count", { count: plan.orders })}
                         </p>
                       </div>
                       <span className="text-sm font-medium text-gray-800 dark:text-white/90">
-                        {formatMoney(plan.revenue, summary.currency)}
+                        {formatMoney(plan.revenue, summary.currency, language)}
                       </span>
                     </div>
                   ))}
@@ -208,11 +217,11 @@ export default function Revenue() {
           <div className="col-span-12 xl:col-span-6">
             <div className="rounded-lg border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
               <h3 className="mb-4 text-lg font-semibold text-gray-800 dark:text-white/90">
-                Revenue by coverage
+                {t("revenue.byCoverage")}
               </h3>
               {summary.revenueByCoverage.length === 0 ? (
                 <p className="text-sm text-gray-500">
-                  No coverage contribution for this range.
+                  {t("revenue.noCoverage")}
                 </p>
               ) : (
                 <div className="space-y-3">
@@ -226,11 +235,15 @@ export default function Revenue() {
                           {coverage.label}
                         </p>
                         <p className="text-xs text-gray-500">
-                          {coverage.orders} orders
+                          {t("orders.count", { count: coverage.orders })}
                         </p>
                       </div>
                       <span className="text-sm font-medium text-gray-800 dark:text-white/90">
-                        {formatMoney(coverage.revenue, summary.currency)}
+                        {formatMoney(
+                          coverage.revenue,
+                          summary.currency,
+                          language
+                        )}
                       </span>
                     </div>
                   ))}

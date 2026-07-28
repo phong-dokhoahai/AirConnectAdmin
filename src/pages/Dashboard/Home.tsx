@@ -7,8 +7,10 @@ import {
   RecentRevenueOrders,
   RevenueChart,
 } from "../Revenue/revenueUi";
+import { useI18n } from "../../lib/i18n";
 
 export default function Home() {
+  const { language, t } = useI18n();
   const [summary, setSummary] = useState<RevenueSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -27,7 +29,7 @@ export default function Home() {
           setError(
             nextError instanceof Error
               ? nextError.message
-              : "Could not load dashboard."
+              : t("error.dashboard")
           );
         }
       } finally {
@@ -47,10 +49,10 @@ export default function Home() {
       <PageMeta title="Dashboard | AirConnect Admin" description="" />
       <div className="mb-6">
         <h1 className="text-2xl font-semibold text-gray-800 dark:text-white/90">
-          Dashboard
+          {t("common.dashboard")}
         </h1>
         <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-          Paid revenue, recent orders, and top-selling plans.
+          {t("dashboard.description")}
         </p>
       </div>
 
@@ -73,35 +75,47 @@ export default function Home() {
         <div className="grid grid-cols-12 gap-4 md:gap-6">
           <div className="col-span-12 md:col-span-6 xl:col-span-3">
             <MetricCard
-              label="Today revenue"
-              value={formatMoney(summary.todayRevenue, summary.currency)}
-              context="Paid orders today"
+              label={t("dashboard.todayRevenue")}
+              value={formatMoney(
+                summary.todayRevenue,
+                summary.currency,
+                language
+              )}
+              context={t("dashboard.paidOrdersToday")}
             />
           </div>
           <div className="col-span-12 md:col-span-6 xl:col-span-3">
             <MetricCard
-              label="Month revenue"
-              value={formatMoney(summary.monthRevenue, summary.currency)}
-              context="Paid orders this month"
+              label={t("dashboard.monthRevenue")}
+              value={formatMoney(
+                summary.monthRevenue,
+                summary.currency,
+                language
+              )}
+              context={t("dashboard.paidOrdersThisMonth")}
             />
           </div>
           <div className="col-span-12 md:col-span-6 xl:col-span-3">
             <MetricCard
-              label="Paid orders"
+              label={t("common.orders")}
               value={summary.paidOrders.toString()}
-              context="Default revenue-counting orders"
+              context={t("dashboard.paidOrdersDefault")}
             />
           </div>
           <div className="col-span-12 md:col-span-6 xl:col-span-3">
             <MetricCard
-              label="All-time paid revenue"
-              value={formatMoney(summary.totalRevenue, summary.currency)}
-              context="Paid orders only"
+              label={t("dashboard.allTimePaidRevenue")}
+              value={formatMoney(
+                summary.totalRevenue,
+                summary.currency,
+                language
+              )}
+              context={t("dashboard.paidOrdersOnly")}
             />
           </div>
           <div className="col-span-12 xl:col-span-7">
             <RevenueChart
-              title="Revenue trend"
+              title={t("dashboard.revenueTrend")}
               labels={summary.revenueByDay.map((row) => row.label)}
               values={summary.revenueByDay.map((row) => row.revenue)}
             />
@@ -109,10 +123,12 @@ export default function Home() {
           <div className="col-span-12 xl:col-span-5">
             <div className="rounded-lg border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
               <h3 className="mb-4 text-lg font-semibold text-gray-800 dark:text-white/90">
-                Top plans
+                {t("dashboard.topPlans")}
               </h3>
               {summary.topPlans.length === 0 ? (
-                <p className="text-sm text-gray-500">No paid orders yet.</p>
+                <p className="text-sm text-gray-500">
+                  {t("dashboard.noPaidOrders")}
+                </p>
               ) : (
                 <div className="space-y-3">
                   {summary.topPlans.map((plan) => (
@@ -125,11 +141,13 @@ export default function Home() {
                           {plan.label}
                         </p>
                         <p className="text-xs text-gray-500">
-                          {plan.orders} paid orders
+                          {t("dashboard.paidOrdersCount", {
+                            count: plan.orders,
+                          })}
                         </p>
                       </div>
                       <span className="text-sm font-medium text-gray-800 dark:text-white/90">
-                        {formatMoney(plan.revenue, summary.currency)}
+                        {formatMoney(plan.revenue, summary.currency, language)}
                       </span>
                     </div>
                   ))}

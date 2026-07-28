@@ -1,4 +1,8 @@
+import { useI18n } from "../lib/i18n";
+
 export default function SidebarWidget() {
+  const { t } = useI18n();
+
   return (
     <div
       className={`
@@ -8,13 +12,13 @@ export default function SidebarWidget() {
         AirConnect Admin
       </h3>
       <p className="mb-4 text-gray-500 text-theme-sm dark:text-gray-400">
-        Manage AirConnect plans, revenue, and orders.
+        {t("sidebar.manage")}
       </p>
       <a
         href="/"
         className="flex items-center justify-center p-3 font-medium text-white rounded-lg bg-brand-500 text-theme-sm hover:bg-brand-600"
       >
-        Dashboard
+        {t("common.dashboard")}
       </a>
     </div>
   );

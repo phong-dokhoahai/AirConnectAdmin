@@ -8,6 +8,7 @@ import {
   type OrderStatus,
   type RevenueOrder,
 } from "../../lib/adminQueries";
+import { useI18n } from "../../lib/i18n";
 import { formatDate, formatMoney, statusColor } from "../Revenue/revenueUi";
 
 const statuses: OrderStatus[] = ["paid", "pending", "failed", "canceled"];
@@ -25,11 +26,8 @@ function toggleStatus(values: OrderStatus[], status: OrderStatus) {
     : [...values, status];
 }
 
-function revenueEligibility(order: RevenueOrder) {
-  return order.status === "paid" ? "Counts toward revenue" : "Not counted";
-}
-
 export default function Orders() {
+  const { language, t } = useI18n();
   const [orders, setOrders] = useState<RevenueOrder[]>([]);
   const [search, setSearch] = useState("");
   const [startDate, setStartDate] = useState(todayInput(-30));
@@ -53,9 +51,7 @@ export default function Orders() {
       );
       setPage(1);
     } catch (nextError) {
-      setError(
-        nextError instanceof Error ? nextError.message : "Could not load orders."
-      );
+      setError(nextError instanceof Error ? nextError.message : t("error.orders"));
     } finally {
       setLoading(false);
     }
@@ -89,16 +85,19 @@ export default function Orders() {
     setPage(1);
   };
 
+  const revenueEligibility = (order: RevenueOrder) =>
+    order.status === "paid" ? t("orders.counted") : t("orders.notCounted");
+
   return (
     <>
       <PageMeta title="Orders | AirConnect Admin" description="" />
-      <PageBreadcrumb pageTitle="Orders" />
+      <PageBreadcrumb pageTitle={t("common.orders")} />
 
       <div className="mb-6 rounded-lg border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
         <div className="grid gap-4 xl:grid-cols-[1.5fr_1fr_1fr_2fr_auto] xl:items-end">
           <label>
             <span className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Search
+              {t("common.search")}
             </span>
             <input
               value={search}
@@ -106,13 +105,13 @@ export default function Orders() {
                 setSearch(event.target.value);
                 setPage(1);
               }}
-              placeholder="Email or order ID"
+              placeholder={t("orders.emailOrId")}
               className="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 text-sm text-gray-800 dark:border-gray-700 dark:text-white/90"
             />
           </label>
           <label>
             <span className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Start date
+              {t("common.startDate")}
             </span>
             <input
               type="date"
@@ -123,7 +122,7 @@ export default function Orders() {
           </label>
           <label>
             <span className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-              End date
+              {t("common.endDate")}
             </span>
             <input
               type="date"
@@ -134,7 +133,7 @@ export default function Orders() {
           </label>
           <div>
             <span className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Payment status
+              {t("common.paymentStatus")}
             </span>
             <div className="flex flex-wrap gap-3">
               {statuses.map((status) => (
@@ -149,13 +148,13 @@ export default function Orders() {
                       setSelectedStatuses(toggleStatus(selectedStatuses, status))
                     }
                   />
-                  {status}
+                  {t(`status.${status}`)}
                 </label>
               ))}
             </div>
           </div>
           <Button size="sm" onClick={loadOrders} disabled={loading}>
-            Apply
+            {t("common.apply")}
           </Button>
         </div>
       </div>
@@ -171,27 +170,22 @@ export default function Orders() {
           <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-800">
             <thead className="bg-gray-50 dark:bg-gray-900">
               <tr>
-                <th className="px-5 py-3 text-left text-xs font-medium text-gray-500">
-                  Order
-                </th>
-                <th className="px-5 py-3 text-left text-xs font-medium text-gray-500">
-                  Customer
-                </th>
-                <th className="px-5 py-3 text-left text-xs font-medium text-gray-500">
-                  Plan
-                </th>
-                <th className="px-5 py-3 text-left text-xs font-medium text-gray-500">
-                  Amount
-                </th>
-                <th className="px-5 py-3 text-left text-xs font-medium text-gray-500">
-                  Status
-                </th>
-                <th className="px-5 py-3 text-left text-xs font-medium text-gray-500">
-                  Revenue
-                </th>
-                <th className="px-5 py-3 text-left text-xs font-medium text-gray-500">
-                  Date
-                </th>
+                {[
+                  "common.order",
+                  "common.customer",
+                  "common.plan",
+                  "common.amount",
+                  "common.status",
+                  "common.revenue",
+                  "common.date",
+                ].map((key) => (
+                  <th
+                    key={key}
+                    className="px-5 py-3 text-left text-xs font-medium text-gray-500"
+                  >
+                    {t(key)}
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
@@ -216,18 +210,18 @@ export default function Orders() {
                       {order.planTitle}
                     </td>
                     <td className="px-5 py-4 text-sm text-gray-700 dark:text-gray-300">
-                      {formatMoney(order.total_amount, order.currency)}
+                      {formatMoney(order.total_amount, order.currency, language)}
                     </td>
                     <td className="px-5 py-4">
                       <Badge color={statusColor(order.status)}>
-                        {order.status}
+                        {t(`status.${order.status}`)}
                       </Badge>
                     </td>
                     <td className="px-5 py-4 text-sm text-gray-700 dark:text-gray-300">
                       {revenueEligibility(order)}
                     </td>
                     <td className="px-5 py-4 text-sm text-gray-500">
-                      {formatDate(order.created_at)}
+                      {formatDate(order.created_at, language)}
                     </td>
                   </tr>
                 ))}
@@ -254,16 +248,18 @@ export default function Orders() {
                       {order.traveler_email}
                     </p>
                   </div>
-                  <Badge color={statusColor(order.status)}>{order.status}</Badge>
+                  <Badge color={statusColor(order.status)}>
+                    {t(`status.${order.status}`)}
+                  </Badge>
                 </div>
                 <p className="text-sm text-gray-700 dark:text-gray-300">
-                  {formatMoney(order.total_amount, order.currency)} ·{" "}
-                  {formatDate(order.created_at)}
+                  {formatMoney(order.total_amount, order.currency, language)} ·{" "}
+                  {formatDate(order.created_at, language)}
                 </p>
-                <p className="text-sm text-gray-500">
-                  {revenueEligibility(order)}
+                <p className="text-sm text-gray-500">{revenueEligibility(order)}</p>
+                <p className="text-xs text-gray-400">
+                  {t("common.order")} {order.id}
                 </p>
-                <p className="text-xs text-gray-400">Order {order.id}</p>
               </div>
             ))}
         </div>
@@ -271,16 +267,16 @@ export default function Orders() {
         {!loading && filteredOrders.length === 0 && (
           <div className="p-8 text-center">
             <h3 className="font-medium text-gray-800 dark:text-white/90">
-              No orders match these filters.
+              {t("orders.noMatch")}
             </h3>
             <p className="mt-1 text-sm text-gray-500">
-              Search value and filters are preserved.
+              {t("orders.searchPreserved")}
             </p>
             <button
               onClick={clearFilters}
               className="mt-3 text-sm text-brand-500 hover:text-brand-600"
             >
-              Clear filters
+              {t("common.clearFilters")}
             </button>
           </div>
         )}
@@ -288,9 +284,11 @@ export default function Orders() {
         {!loading && filteredOrders.length > 0 && (
           <div className="flex flex-col gap-3 border-t border-gray-200 px-5 py-4 dark:border-gray-800 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-sm text-gray-500">
-              Showing {(page - 1) * pageSize + 1}-
-              {Math.min(page * pageSize, filteredOrders.length)} of{" "}
-              {filteredOrders.length}
+              {t("orders.pagination", {
+                from: (page - 1) * pageSize + 1,
+                to: Math.min(page * pageSize, filteredOrders.length),
+                total: filteredOrders.length,
+              })}
             </p>
             <div className="flex gap-2">
               <Button
@@ -299,7 +297,7 @@ export default function Orders() {
                 onClick={() => setPage((value) => Math.max(1, value - 1))}
                 disabled={page === 1}
               >
-                Previous
+                {t("common.previous")}
               </Button>
               <Button
                 variant="outline"
@@ -309,7 +307,7 @@ export default function Orders() {
                 }
                 disabled={page === pageCount}
               >
-                Next
+                {t("common.next")}
               </Button>
             </div>
           </div>

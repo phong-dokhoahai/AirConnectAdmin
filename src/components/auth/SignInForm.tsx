@@ -6,6 +6,7 @@ import Input from "../form/input/InputField";
 import Checkbox from "../form/input/Checkbox";
 import Button from "../ui/button/Button";
 import { useAuth } from "../../lib/auth";
+import { useI18n } from "../../lib/i18n";
 
 export default function SignInForm() {
   const [showPassword, setShowPassword] = useState(false);
@@ -15,6 +16,7 @@ export default function SignInForm() {
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { signIn } = useAuth();
+  const { t } = useI18n();
   const navigate = useNavigate();
   const location = useLocation();
   const from = (location.state as { from?: { pathname?: string } } | null)?.from
@@ -44,17 +46,17 @@ export default function SignInForm() {
           className="inline-flex items-center text-sm text-gray-500 transition-colors hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
         >
           <ChevronLeftIcon className="size-5" />
-          Back to dashboard
+          {t("auth.backDashboard")}
         </Link>
       </div>
       <div className="flex flex-col justify-center flex-1 w-full max-w-md mx-auto">
         <div>
           <div className="mb-5 sm:mb-8">
             <h1 className="mb-2 font-semibold text-gray-800 text-title-sm dark:text-white/90 sm:text-title-md">
-              Sign In
+              {t("auth.signInTitle")}
             </h1>
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              Sign in with your admin account.
+              {t("auth.signInBody")}
             </p>
           </div>
           <div>
@@ -67,7 +69,7 @@ export default function SignInForm() {
                 )}
                 <div>
                   <Label>
-                    Email <span className="text-error-500">*</span>{" "}
+                    {t("common.email")} <span className="text-error-500">*</span>{" "}
                   </Label>
                   <Input
                     type="email"
@@ -80,12 +82,12 @@ export default function SignInForm() {
                 </div>
                 <div>
                   <Label>
-                    Password <span className="text-error-500">*</span>{" "}
+                    {t("auth.password")} <span className="text-error-500">*</span>{" "}
                   </Label>
                   <div className="relative">
                     <Input
                       type={showPassword ? "text" : "password"}
-                      placeholder="Enter your password"
+                      placeholder={t("auth.passwordPlaceholder")}
                       value={password}
                       onChange={(event) => setPassword(event.target.value)}
                       disabled={isSubmitting}
@@ -106,7 +108,7 @@ export default function SignInForm() {
                   <div className="flex items-center gap-3">
                     <Checkbox checked={isChecked} onChange={setIsChecked} />
                     <span className="block font-normal text-gray-700 text-theme-sm dark:text-gray-400">
-                      Keep me logged in
+                      {t("auth.keepLoggedIn")}
                     </span>
                   </div>
                 </div>
@@ -117,7 +119,7 @@ export default function SignInForm() {
                     type="submit"
                     disabled={isSubmitting}
                   >
-                    {isSubmitting ? "Signing in..." : "Sign in"}
+                    {isSubmitting ? t("auth.signingIn") : t("auth.signIn")}
                   </Button>
                 </div>
               </div>

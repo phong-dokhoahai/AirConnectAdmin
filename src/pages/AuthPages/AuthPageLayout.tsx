@@ -2,12 +2,15 @@ import React from "react";
 import GridShape from "../../components/common/GridShape";
 import { Link } from "react-router";
 import ThemeTogglerTwo from "../../components/common/ThemeTogglerTwo";
+import { languageOptions, useI18n } from "../../lib/i18n";
 
 export default function AuthLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const { language, setLanguage, t } = useI18n();
+
   return (
     <div className="relative p-6 bg-white z-1 dark:bg-gray-900 sm:p-0">
       <div className="relative flex flex-col justify-center w-full h-screen lg:flex-row dark:bg-gray-900 sm:p-0">
@@ -32,7 +35,22 @@ export default function AuthLayout({
             </div>
           </div>
         </div>
-        <div className="fixed z-50 hidden bottom-6 right-6 sm:block">
+        <div className="fixed z-50 hidden bottom-6 right-6 sm:flex sm:items-center sm:gap-3">
+          <label className="sr-only" htmlFor="auth-language">
+            {t("common.language")}
+          </label>
+          <select
+            id="auth-language"
+            value={language}
+            onChange={(event) => setLanguage(event.target.value as typeof language)}
+            className="h-11 rounded-full border border-gray-200 bg-white px-3 text-sm text-gray-700 shadow-theme-xs dark:border-gray-800 dark:bg-gray-900 dark:text-gray-400"
+          >
+            {languageOptions.map((option) => (
+              <option key={option.code} value={option.code}>
+                {option.label}
+              </option>
+            ))}
+          </select>
           <ThemeTogglerTwo />
         </div>
       </div>

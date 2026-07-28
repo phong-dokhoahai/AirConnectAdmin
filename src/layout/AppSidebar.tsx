@@ -7,23 +7,25 @@ import {
   TaskIcon,
 } from "../icons";
 import { useSidebar } from "../context/SidebarContext";
+import { useI18n } from "../lib/i18n";
 
 type NavItem = {
-  name: string;
+  labelKey: string;
   icon: React.ReactNode;
   path: string;
 };
 
 const navItems: NavItem[] = [
-  { icon: <GridIcon />, name: "Dashboard", path: "/" },
-  { icon: <TaskIcon />, name: "eSIM Plans", path: "/plans" },
-  { icon: <DollarLineIcon />, name: "Revenue", path: "/revenue" },
-  { icon: <TableIcon />, name: "Orders", path: "/orders" },
+  { icon: <GridIcon />, labelKey: "common.dashboard", path: "/" },
+  { icon: <TaskIcon />, labelKey: "plans.title", path: "/plans" },
+  { icon: <DollarLineIcon />, labelKey: "common.revenue", path: "/revenue" },
+  { icon: <TableIcon />, labelKey: "common.orders", path: "/orders" },
 ];
 
 const AppSidebar: React.FC = () => {
   const { isExpanded, isMobileOpen, isHovered, setIsHovered } = useSidebar();
   const location = useLocation();
+  const { t } = useI18n();
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -80,14 +82,14 @@ const AppSidebar: React.FC = () => {
             }`}
           >
             {isExpanded || isHovered || isMobileOpen ? (
-              "Menu"
+              t("sidebar.menu")
             ) : (
               <HorizontaLDots className="size-6" />
             )}
           </h2>
           <ul className="flex flex-col gap-4">
             {navItems.map((nav) => (
-              <li key={nav.name}>
+              <li key={nav.path}>
                 <Link
                   to={nav.path}
                   className={`menu-item group ${
@@ -104,7 +106,7 @@ const AppSidebar: React.FC = () => {
                     {nav.icon}
                   </span>
                   {(isExpanded || isHovered || isMobileOpen) && (
-                    <span className="menu-item-text">{nav.name}</span>
+                    <span className="menu-item-text">{t(nav.labelKey)}</span>
                   )}
                 </Link>
               </li>
