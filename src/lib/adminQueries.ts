@@ -288,10 +288,10 @@ export async function savePlan(input: PlanInput): Promise<string> {
   return planId;
 }
 
-export async function hidePlan(id: string) {
+export async function setPlanActive(id: string, isActive: boolean) {
   const { error } = await supabase
     .from("esim_plans")
-    .update({ is_active: false })
+    .update({ is_active: isActive })
     .eq("id", id);
   assertNoError(error);
 }

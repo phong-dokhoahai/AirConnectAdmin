@@ -5,7 +5,11 @@ import PageBreadcrumb from "../../components/common/PageBreadCrumb";
 import Badge from "../../components/ui/badge/Badge";
 import Button from "../../components/ui/button/Button";
 import { Modal } from "../../components/ui/modal";
-import { hidePlan, listPlans, type PlanSummary } from "../../lib/adminQueries";
+import {
+  listPlans,
+  setPlanActive,
+  type PlanSummary,
+} from "../../lib/adminQueries";
 
 type StatusFilter = "all" | "active" | "hidden";
 
@@ -67,12 +71,30 @@ export default function PlansList() {
     setError("");
 
     try {
-      await hidePlan(planToHide.id);
+      await setPlanActive(planToHide.id, false);
       setPlanToHide(null);
       await loadPlans();
     } catch (nextError) {
       setError(
         nextError instanceof Error ? nextError.message : "Could not hide plan."
+      );
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const activatePlan = async (plan: PlanSummary) => {
+    setIsSaving(true);
+    setError("");
+
+    try {
+      await setPlanActive(plan.id, true);
+      await loadPlans();
+    } catch (nextError) {
+      setError(
+        nextError instanceof Error
+          ? nextError.message
+          : "Could not activate plan."
       );
     } finally {
       setIsSaving(false);
@@ -183,12 +205,21 @@ export default function PlansList() {
                         >
                           Edit
                         </Link>
-                        {plan.is_active && (
+                        {plan.is_active ? (
                           <button
                             onClick={() => setPlanToHide(plan)}
+                            disabled={isSaving}
                             className="text-warning-600 hover:text-warning-700"
                           >
                             Hide
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => activatePlan(plan)}
+                            disabled={isSaving}
+                            className="text-success-600 hover:text-success-700"
+                          >
+                            Activate
                           </button>
                         )}
                       </div>
@@ -232,12 +263,21 @@ export default function PlansList() {
                     >
                       Edit
                     </Link>
-                    {plan.is_active && (
+                    {plan.is_active ? (
                       <button
                         onClick={() => setPlanToHide(plan)}
+                        disabled={isSaving}
                         className="text-warning-600 hover:text-warning-700"
                       >
                         Hide
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => activatePlan(plan)}
+                        disabled={isSaving}
+                        className="text-success-600 hover:text-success-700"
+                      >
+                        Activate
                       </button>
                     )}
                   </div>
