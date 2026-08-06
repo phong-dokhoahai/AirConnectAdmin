@@ -6,6 +6,11 @@ export type Country = {
   iso2: string;
 };
 
+export type CountryInput = {
+  name: string;
+  iso2: string;
+};
+
 export type Region = {
   id: string;
   name: string;
@@ -164,6 +169,40 @@ export async function listCountries(): Promise<Country[]> {
   const { data, error } = await supabase
     .from("countries")
     .select("id, name, iso2")
+    .order("name");
+  assertNoError(error);
+  return (data ?? []) as Country[];
+}
+
+export async function ensureCountries(inputs: CountryInput[]): Promise<Country[]> {
+  if (inputs.length === 0) return [];
+
+  const iso2s = [...new Set(inputs.map((country) => country.iso2.toUpperCase()))];
+  const { data: existing, error: existingError } = await supabase
+    .from("countries")
+    .select("id, name, iso2")
+    .in("iso2", iso2s);
+  assertNoError(existingError);
+
+  const existingIso2s = new Set(
+    ((existing ?? []) as Country[]).map((country) => country.iso2.toUpperCase())
+  );
+  const missing = inputs
+    .map((country) => ({
+      name: country.name.trim(),
+      iso2: country.iso2.trim().toUpperCase(),
+    }))
+    .filter((country) => !existingIso2s.has(country.iso2));
+
+  if (missing.length > 0) {
+    const { error: insertError } = await supabase.from("countries").insert(missing);
+    assertNoError(insertError);
+  }
+
+  const { data, error } = await supabase
+    .from("countries")
+    .select("id, name, iso2")
+    .in("iso2", iso2s)
     .order("name");
   assertNoError(error);
   return (data ?? []) as Country[];

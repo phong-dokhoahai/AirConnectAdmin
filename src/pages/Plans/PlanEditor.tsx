@@ -4,11 +4,13 @@ import PageMeta from "../../components/common/PageMeta";
 import PageBreadcrumb from "../../components/common/PageBreadCrumb";
 import Button from "../../components/ui/button/Button";
 import {
+  ensureCountries,
   getPlanDetails,
   listCountries,
   listRegions,
   savePlan,
   type Country,
+  type CountryInput,
   type NetworkType,
   type PlanFeatureInput,
   type PlanNetworkInput,
@@ -32,6 +34,7 @@ type PlanForm = {
   supports5g: boolean;
   isActive: boolean;
   countryIds: string[];
+  newCountriesText: string;
   regionIds: string[];
   networksText: string;
   featuresText: string;
@@ -51,6 +54,7 @@ const emptyForm: PlanForm = {
   supports5g: false,
   isActive: true,
   countryIds: [],
+  newCountriesText: "",
   regionIds: [],
   networksText: "",
   featuresText: "",
@@ -92,6 +96,30 @@ function parseFeatures(text: string): PlanFeatureInput[] {
       label,
       sort_order: index + 1,
     }));
+}
+
+function parseNewCountries(text: string, errorMessage: string): CountryInput[] {
+  const countriesByIso2 = new Map<string, CountryInput>();
+
+  text
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .forEach((line) => {
+      const [iso2 = "", name = ""] = line.split("|").map((value) => value.trim());
+      const normalizedIso2 = iso2.toUpperCase();
+
+      if (!/^[A-Z]{2}$/.test(normalizedIso2) || !name) {
+        throw new Error(errorMessage);
+      }
+
+      countriesByIso2.set(normalizedIso2, {
+        iso2: normalizedIso2,
+        name,
+      });
+    });
+
+  return Array.from(countriesByIso2.values());
 }
 
 function parseNetworks(
@@ -207,6 +235,7 @@ export default function PlanEditor() {
             supports5g: details.plan.supports_5g,
             isActive: details.plan.is_active,
             countryIds: details.countryIds,
+            newCountriesText: "",
             regionIds: details.regionIds,
             networksText: networksToText(details.networks, nextCountries),
             featuresText: featuresToText(details.features),
@@ -258,6 +287,13 @@ export default function PlanEditor() {
     setSaving(true);
 
     try {
+      const newCountries = await ensureCountries(
+        parseNewCountries(form.newCountriesText, t("plans.newCountriesInvalid"))
+      );
+      const allCountries = Array.from(
+        new Map([...countries, ...newCountries].map((country) => [country.id, country]))
+          .values()
+      );
       await savePlan({
         id,
         title: form.title.trim(),
@@ -272,15 +308,24 @@ export default function PlanEditor() {
         tethering_supported: form.tetheringSupported,
         supports_5g: form.supports5g,
         is_active: form.isActive,
-        countryIds: form.countryIds,
+        countryIds: [
+          ...new Set([
+            ...form.countryIds,
+            ...newCountries.map((country) => country.id),
+          ]),
+        ],
         regionIds: form.regionIds,
         networks: parseNetworks(
           form.networksText,
-          countries,
+          allCountries,
           t("plans.networksInvalid")
         ),
         features: parseFeatures(form.featuresText),
       });
+      if (newCountries.length > 0) {
+        setCountries(allCountries.sort((a, b) => a.name.localeCompare(b.name)));
+        updateForm("newCountriesText", "");
+      }
       setSavedMessage(t("plans.saved"));
 
       if (!isEditing) {
@@ -399,6 +444,23 @@ export default function PlanEditor() {
                       </label>
                     ))}
                   </div>
+                  <label className="mt-3 block">
+                    <span className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                      {t("plans.newCountries")}
+                    </span>
+                    <textarea
+                      value={form.newCountriesText}
+                      onChange={(event) =>
+                        updateForm("newCountriesText", event.target.value)
+                      }
+                      rows={3}
+                      placeholder="TH | Thailand"
+                      className="w-full rounded-lg border border-gray-300 bg-transparent px-4 py-3 text-sm text-gray-800 dark:border-gray-700 dark:text-white/90"
+                    />
+                    <p className="mt-1 text-xs text-gray-500">
+                      {t("plans.newCountriesHint")}
+                    </p>
+                  </label>
                 </div>
                 <div>
                   <h3 className="mb-3 text-sm font-medium text-gray-700 dark:text-gray-300">
