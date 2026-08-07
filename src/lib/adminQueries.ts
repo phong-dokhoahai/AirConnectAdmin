@@ -417,6 +417,7 @@ export async function listRevenueOrders(options?: {
   startDate?: string;
   endDate?: string;
   statuses?: OrderStatus[];
+  planIds?: string[];
 }): Promise<RevenueOrder[]> {
   let query = supabase
     .from("orders")
@@ -435,6 +436,10 @@ export async function listRevenueOrders(options?: {
 
   if (options?.statuses && options.statuses.length > 0) {
     query = query.in("status", options.statuses);
+  }
+
+  if (options?.planIds && options.planIds.length > 0) {
+    query = query.in("plan_id", options.planIds);
   }
 
   const { data, error } = await query;

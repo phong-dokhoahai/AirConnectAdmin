@@ -4,8 +4,10 @@ import PageBreadcrumb from "../../components/common/PageBreadCrumb";
 import Badge from "../../components/ui/badge/Badge";
 import Button from "../../components/ui/button/Button";
 import {
+  listPlans,
   listRevenueOrders,
   type OrderStatus,
+  type PlanSummary,
   type RevenueOrder,
 } from "../../lib/adminQueries";
 import { useI18n } from "../../lib/i18n";
@@ -29,10 +31,12 @@ function toggleStatus(values: OrderStatus[], status: OrderStatus) {
 export default function Orders() {
   const { language, t } = useI18n();
   const [orders, setOrders] = useState<RevenueOrder[]>([]);
+  const [availablePlans, setAvailablePlans] = useState<PlanSummary[]>([]);
   const [search, setSearch] = useState("");
   const [startDate, setStartDate] = useState(todayInput(-30));
   const [endDate, setEndDate] = useState(todayInput(0));
   const [selectedStatuses, setSelectedStatuses] = useState<OrderStatus[]>([]);
+  const [selectedPlanId, setSelectedPlanId] = useState<string>("");
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -47,6 +51,7 @@ export default function Orders() {
           startDate,
           endDate,
           statuses: selectedStatuses,
+          planIds: selectedPlanId ? [selectedPlanId] : undefined,
         })
       );
       setPage(1);
@@ -60,6 +65,12 @@ export default function Orders() {
   useEffect(() => {
     void loadOrders();
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    void listPlans()
+      .then(setAvailablePlans)
+      .catch(() => {});
   }, []);
 
   const filteredOrders = useMemo(() => {
@@ -80,6 +91,7 @@ export default function Orders() {
   const clearFilters = () => {
     setSearch("");
     setSelectedStatuses([]);
+    setSelectedPlanId("");
     setStartDate(todayInput(-30));
     setEndDate(todayInput(0));
     setPage(1);
@@ -94,7 +106,7 @@ export default function Orders() {
       <PageBreadcrumb pageTitle={t("common.orders")} />
 
       <div className="mb-6 rounded-lg border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
-        <div className="grid gap-4 xl:grid-cols-[1.5fr_1fr_1fr_2fr_auto] xl:items-end">
+        <div className="grid gap-4 xl:grid-cols-[1.5fr_1.2fr_1fr_1fr_2fr_auto] xl:items-end">
           <label>
             <span className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
               {t("common.search")}
@@ -108,6 +120,23 @@ export default function Orders() {
               placeholder={t("orders.emailOrId")}
               className="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 text-sm text-gray-800 dark:border-gray-700 dark:text-white/90"
             />
+          </label>
+          <label>
+            <span className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+              {t("common.plan")}
+            </span>
+            <select
+              value={selectedPlanId}
+              onChange={(event) => setSelectedPlanId(event.target.value)}
+              className="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 text-sm text-gray-800 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
+            >
+              <option value="">{t("common.allPlans")}</option>
+              {availablePlans.map((plan) => (
+                <option key={plan.id} value={plan.id}>
+                  {plan.title}
+                </option>
+              ))}
+            </select>
           </label>
           <label>
             <span className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
